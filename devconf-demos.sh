@@ -1,3 +1,16 @@
+# Initial setup
+sudo cp /usr/share/doc/audit/rules/10-base-config.rules /etc/audit/rules.d/audit.rules
+sudo augenrules --load > /dev/null
+sudo systemctl restart auditd 2> /dev/null
+sudo podman build -t buildah-ctr .
+sudo mkdir /tmp/mycontainer
+sudo podman kill -a
+sudo podman rm -af
+podman kill -a
+sleep 1
+podman rm -af
+clear
+
 read -p "DevConf Demos!"
 echo ""
 
@@ -15,7 +28,7 @@ mnt=$(sudo buildah mount $ctr)
 echo $mnt
 echo ""
 
-read -p "--> sudo dnf install -y --installroot=\$mnt busybox --releasever=28 --disablerepo=* --enablerepo=fedora"
+echo "--> sudo dnf install -y --installroot=\$mnt busybox --releasever=28 --disablerepo=* --enablerepo=fedora"
 sudo dnf install -y --installroot=$mnt busybox --releasever=28 --disablerepo=* --enablerepo=fedora
 echo ""
 
@@ -63,15 +76,16 @@ echo ""
 echo ""
 
 read -p "--> sudo podman run -v \$PWD/myvol:/myvol:Z -v /var/lib/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs bud -t myimage --isolation chroot /myvol"
-sudo podman run --net=host -v $PWD/myvol:/myvol:Z -v /var/lib/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs bud -t myimage --isolation chroot /myvol
+sudo podman run --net=host -v $PWD/myvol:/myvol:Z -v /tmp/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs bud -t myimage --isolation chroot /myvol
 echo ""
 
 read -p "--> sudo podman run -v /var/lib/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs images"
-sudo podman run --net=host -v /var/lib/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs images
+sudo podman run --net=host -v /tmp/mycontainer:/var/lib/containers:Z buildah-ctr --storage-driver vfs images
 echo ""
 
 read -p "--> cleanup"
 sudo podman rm -a -f
+sudo rm -rf /tmp/mycontainer
 echo ""
 
 read -p "--> clear"
@@ -128,6 +142,12 @@ read -p "--> ps -Alf | grep sleep"
 ps -Alf | grep sleep
 echo ""
 
+read -p "--> cleanup"
+sudo podman stop -t 0 -a
+sudo buildah rm -a
+sudo podman rm -a -f
+echo ""
+
 read -p "--> clear"
 clear
 
@@ -149,6 +169,10 @@ sudo docker run -ti fedora bash -c "cat /proc/self/loginuid; echo"
 echo ""
 
 # Showing how podman keeps track of the person trying to wreak havoc on your system
+read -p "--> sudo auditctl -w /etc/shadow"
+sudo auditctl -w /etc/shadow 2>/dev/null
+echo ""
+
 read -p "--> sudo podman run --privileged -v /:/host fedora touch /host/etc/shadow"
 sudo podman run --privileged -v /:/host fedora touch /host/etc/shadow
 echo ""
@@ -245,7 +269,7 @@ read -p "Modifying capabilities in CRI-O"
 echo ""
 
 read -p "--> sudo vim /etc/crio/crio.conf"
-sudo vim /etc/crio/crio.conf
+sudo emacs -nw /etc/crio/crio.conf
 echo ""
 
 read -p "--> sudo systemctl restart crio"
